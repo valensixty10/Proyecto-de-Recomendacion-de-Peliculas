@@ -1,0 +1,10 @@
+C:\Users\Usuario\Desktop\DATA SCIENCE\PROYECTO INDIVIDUAL I\entorno_PI01
+data/raw/*.csv
+# Ignorar entornos virtuales y archivos temporales de Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env
