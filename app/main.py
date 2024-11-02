@@ -6,22 +6,15 @@ import os
 
 app = FastAPI()
 
-# Ruta a los archivos .parquet
-data_processed_path = "./app/processed_data"  
+# Rutas absolutas a los archivos .parquet
+movies_path = r"C:\Users\Usuario\Desktop\DATA SCIENCE\PROYECTO ML\Data\processed_data\movies_dataset.parquet"
+credits_path = r"C:\Users\Usuario\Desktop\DATA SCIENCE\PROYECTO ML\Data\processed_data\credits.parquet"
 
 # Función para cargar 'movies' solo cuando se necesite
 def load_movies():
     try:
-        print("Ruta actual:", os.getcwd())
-        
-        # Verifica la existencia del directorio
-        if os.path.exists(data_processed_path):
-            print("Archivos en 'app/processed_data':", os.listdir(data_processed_path))
-        else:
-            print("Directorio 'app/processed_data' no encontrado.")
-
         # Cargar el archivo parquet
-        movies = pd.read_parquet(f'{data_processed_path}/movies_dataset.parquet')
+        movies = pd.read_parquet(movies_path)
         movies['release_date'] = pd.to_datetime(movies['release_date'], errors='coerce')
         movies['release_year'] = movies['release_date'].dt.year
         return movies
@@ -32,14 +25,8 @@ def load_movies():
 # Función para cargar 'credits' solo cuando se necesite
 def load_credits():
     try:
-        # Verificar si existe el directorio
-        if os.path.exists(data_processed_path):
-            print("Archivos en 'app/processed_data':", os.listdir(data_processed_path))
-        else:
-            print("Directorio 'app/processed_data' no encontrado.")
-        
         # Cargar el archivo parquet
-        return pd.read_parquet(f'{data_processed_path}/credits.parquet')
+        return pd.read_parquet(credits_path)
     except Exception as e:
         print(f"Error al cargar los datos de créditos: {e}")
         return None

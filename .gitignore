@@ -1,4 +1,4 @@
-C:\Users\Usuario\Desktop\DATA SCIENCE\PROYECTO INDIVIDUAL I\entorno_PI01
+entorno_PI01/
 data/raw/*.csv
 # Ignorar entornos virtuales y archivos temporales de Python
 venv/
