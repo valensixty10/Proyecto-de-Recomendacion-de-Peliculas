@@ -5,46 +5,69 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 app = FastAPI()
 
-# Rutas relativas a los archivos .parquet
+# Rutas relativas para los archivos necesarios
 movies_path = 'Data/processed_data/movies_dataset.parquet'
 credits_path = 'Data/processed_data/credits.parquet'
+vectorizer_path = 'Data/processed_data/vectorizer.pkl'
+matriz_reducida_path = 'Data/processed_data/matriz_reducida.pkl'
 
-# Cargar el dataset de películas y el modelo de similitud una vez
-def load_movies_and_model():
+# Cargar los archivos y el modelo entrenado
+def load_movies():
     try:
         movies = pd.read_parquet(movies_path)
         movies['release_date'] = pd.to_datetime(movies['release_date'], errors='coerce')
         movies['release_year'] = movies['release_date'].dt.year
-
-        # Crear las características combinadas para el modelo de similitud
-        movies['genres'] = movies['genres'].astype(str)
-        movies['title'] = movies['title'].astype(str)
-        movies['overview_clean'] = movies['overview_clean'].astype(str)
-        movies['combined_features'] = (
-            movies['genres'].fillna('') + ' ' +
-            movies['title'].fillna('') + ' ' +
-            movies['overview_clean'].fillna('')
-        )
-
-        # Generar el modelo de similitud
-        tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
-        tfidf_matrix = tfidf.fit_transform(movies['combined_features'])
-        cosine_sim = cosine_similarity(tfidf_matrix, dense_output=False)
-
-        return movies, cosine_sim
+        return movies
     except Exception as e:
-        print(f"Error al cargar los datos o el modelo de similitud: {e}")
-        return None, None
+        print(f"Error al cargar los datos de películas: {e}")
+        return None
 
-movies, cosine_sim = load_movies_and_model()
-
-# Función para cargar 'credits' solo cuando se necesite
 def load_credits():
     try:
         return pd.read_parquet(credits_path)
     except Exception as e:
         print(f"Error al cargar los datos de créditos: {e}")
         return None
+
+# Cargar vectorizer y matriz reducida
+try:
+    vectorizer = joblib.load(vectorizer_path)
+    matriz_reducida = joblib.load(matriz_reducida_path)
+except Exception as e:
+    print(f"Error al cargar el modelo de recomendación: {e}")
+    vectorizer = None
+    matriz_reducida = None
+
+movies_df = load_movies()
+
+# Endpoints de la API
+@app.get("/")
+def read_root():
+    return {"message": "API funcionando correctamente"}
+
+@app.get("/recomendacion/{titulo}")
+async def recomendacion(titulo: str):
+    """
+    Genera una lista de 5 películas recomendadas basadas en el título ingresado.
+    """
+    titulo = titulo.lower()
+    idx = movies_df.index[movies_df['title'].str.lower() == titulo].tolist()
+    
+    if not idx:
+        return {"Error": "Película no encontrada"}
+    
+    idx = idx[0]
+    
+    # Calcula la similitud del coseno solo para la película seleccionada
+    sim_scores = cosine_similarity(matriz_reducida[idx].reshape(1, -1), matriz_reducida)
+    sim_scores = list(enumerate(sim_scores[0]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    
+    # Obtener los índices de las 5 películas más similares
+    movie_indices = [i[0] for i in sim_scores[1:6]]
+    recomendaciones = movies_df['title'].iloc[movie_indices].tolist()
+    
+    return {"Recomendaciones": recomendaciones}
 
 # Endpoints de la API
 @app.get("/")
@@ -120,18 +143,3 @@ def get_actor(nombre_actor: str):
         "retorno_total": float(retorno_total) if not pd.isnull(retorno_total) else 0.0,
         "retorno_promedio": float(retorno_promedio) if not pd.isnull(retorno_promedio) else 0.0
     }
-
-@app.get("/recomendacion/{titulo}")
-def obtener_recomendaciones(titulo: str):
-    if movies is None or cosine_sim is None:
-        return {"error": "Error en el servidor. No se pudieron cargar los datos o el modelo de similitud."}
-    idx = movies[movies['title'].str.lower() == titulo.lower()].index
-    if idx.empty:
-        return {"error": "Película no encontrada"}
-    idx = idx[0]
-    sim_scores = list(enumerate(cosine_sim[idx].toarray().flatten()))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:6]
-    movie_indices = [i[0] for i in sim_scores]
-    recomendaciones = movies['title'].iloc[movie_indices].tolist()
-    return {"recomendaciones": recomendaciones}
