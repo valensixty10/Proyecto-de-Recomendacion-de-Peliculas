@@ -6,9 +6,9 @@ import os
 
 app = FastAPI()
 
-# Rutas absolutas a los archivos .parquet
-movies_path = r"C:\Users\Usuario\Desktop\DATA SCIENCE\PROYECTO ML\Data\processed_data\movies_dataset.parquet"
-credits_path = r"C:\Users\Usuario\Desktop\DATA SCIENCE\PROYECTO ML\Data\processed_data\credits.parquet"
+# Usar rutas relativas para los archivos .parquet
+movies_path = 'Data/processed_data/movies_dataset.parquet'
+credits_path = 'Data/processed_data/credits.parquet'
 
 # Función para cargar 'movies' solo cuando se necesite
 def load_movies():
@@ -30,7 +30,7 @@ def load_credits():
     except Exception as e:
         print(f"Error al cargar los datos de créditos: {e}")
         return None
-
+    
 # Endpoints de la API
 @app.get("/")
 def read_root():
